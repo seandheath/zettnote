@@ -24,12 +24,18 @@ enum Status {
   running,
 }
 
+const FILE_GLOB = "*.{md,markdown}";
+const LINK_REGEX = /\[\[[\w\-. ]+\]\]/i;
+
 class Graph {
   nodes: Set<Uri>;
   edges: Set<[Uri, Uri]>;
+  initialized: Boolean;
+
   constructor() {
     this.nodes = new Set<Uri>();
     this.edges = new Set<[Uri, Uri]>();
+    this.initialized = false;
   }
 
   addNode(u: Uri) {
@@ -40,92 +46,89 @@ class Graph {
     this.edges.add([start, stop]);
   }
 
+  addEdges(file: Uri, edges: Uri[]) {
+    edges.forEach((edge) => {
+      this.addEdge(file, edge);
+    });
+  }
+
   getLinks(uri: Uri, i = 0) {
-    return new Set(
-      Array.from(this.edges).map((e) => {
-        e[i] === uri;
-        // If i is 0 get the 1 index, otherwise it's 1 so get the 0 index
-        return e[(i = 0 ? 1 : 0)];
-      })
-    );
+    const links = Array.from(this.edges).filter((edge) => {
+      return edge[i].fsPath === uri.fsPath;
+    }).map((edge) => {
+      // Return only the edge we didn't pass in
+      return edge[i ? 0 : 1];
+    });
+    return new Set(links);
   }
 
   getBacklinks(u: Uri) {
     return this.getLinks(u, 1);
   }
 }
-var sync_status = Status.incomplete;
-
-const FILE_GLOB = "*.{md,markdown}";
-const LINK_REGEX = /\[\[[\w\-. ]+\]\]/i;
 
 function fname(u: Uri) {
   return basename(u.fsPath, "." + u.fsPath.split(".").pop());
 }
 
-function getFilesFromString(links: Set<string>) {
-  return getWorkspaceFiles().then((files) => {
-    return files.filter((f) => {
-      return links.has(fname(f));
-    });
+async function getFilesFromLinks(links: Set<string>) {
+  const allFiles = await getWorkspaceFiles();
+  const linkedFiles = Array.from(allFiles).filter((f) => {
+    return links.has(fname(f));
   });
+  return linkedFiles;
 }
 
-function getLinks(file: Uri) {
-  return workspace.fs
-    .readFile(file)
-    .then((res) => {
-      return res
-        .toString()
-        .split(/\s/)
-        .filter((w) => w.match(LINK_REGEX))
-        .map((w) => w.slice(2, -2));
-    })
-    .then((links) => {
-      return getFilesFromString(new Set(links));
-    });
+async function getFileFromLink(link: string) {
+  const file = await getFilesFromLinks(new Set(link));
+  if (file.length > 1) {
+    // Shouldn't happen...
+    console.error("more than one file matched link");
+  }
+  // return the first item from the set (should only be one)
+  return file[0];
 }
 
-function getBacklinks(target: Uri, files: Set<Uri>): Set<Uri> {
-  // Iterate over each file in the file set (should contain every markdown file
-  // in the workspace)
-  var backlinks = new Set<Uri>();
-  console.debug("Looking for backlinks to: " + basename(target.fsPath));
-  files.forEach((file) => {
-    console.debug("Checking file :" + basename(file.fsPath));
-    getLinks(file).then((res) => {
-      console.debug("Got links: " + res);
-      //if (res.has(target)) {
-      //console.debug("Found backlink");
-      //backlinks.add(file);
-      //}
-    });
-  });
-  return backlinks;
+async function getLinks(file: Uri) {
+  const contents = await workspace.fs.readFile(file);
+  const links = contents
+    .toString()
+    .split(/\s/)
+    .filter((w) => w.match(LINK_REGEX))
+    .map((w) => w.slice(2, -2));
+  return links;
 }
 
-function getWorkspaceFiles() {
+async function getWorkspaceFiles() {
   return workspace.findFiles("**/" + FILE_GLOB).then((files) => {
     return files.filter((file) => file.scheme === "file");
   });
 }
 
-function getEdges(u: Uri) {
+async function getEdges(u: Uri) {
   const links = await getLinks(u);
-  return links;
+  const edges = await getFilesFromLinks(new Set(links));
+  return edges;
 }
 
-function sync(g: Graph) {
-  const files = await getWorkspaceFiles();
-  files.forEach(async (file) => {
-    g.addNode(file);
-    const edges = await getEdges(file);
-    edges.forEach((edge) => {
-      g.addEdge(file, edge);
-    });
-  });
-  return g;
+async function asyncForEach(array: any, callback: any) {
+  for (let index = 0; index < array.length; index++) {
+    await callback(array[index], index, array);
+  }
 }
+
+async function updateGraph() {
+  const g = new Graph();
+  const files = await getWorkspaceFiles();
+  await asyncForEach(Array.from(files), async (file: Uri) => {
+    const edges = await getEdges(file);
+    g.addNode(file);
+    g.addEdges(file, edges);
+
+  });
+  g.initialized = true;
+  return g;
+};
 
 /*
 class MDCompletionItemProvider implements CompletionItemProvider {
@@ -138,31 +141,36 @@ class MDCompletionItemProvider implements CompletionItemProvider {
 }
 */
 
-function getCurrentBacklinks() {
+function getCurrentBacklinks(g: Graph) {
   const openFile = window.activeTextEditor?.document.uri;
-  var retVal = new Set<Uri>();
   if (openFile) {
-    const g = await sync(new Graph());
-    retVal = g.getBacklinks(openFile);
+    console.debug("Checking backlinks for: " + fname(openFile));
+    const backlinks = g.getBacklinks(openFile);
+    return backlinks;
   }
-  return retVal;
+  // return empty set if no links found
+  return new Set<Uri>();
 }
 
-function getCurrentLinks() {
+function getCurrentLinks(g: Graph) {
   const openFile = window.activeTextEditor?.document.uri;
   if (openFile) {
-    getLinks(openFile);
+    //return getLinks(openFile);
+    return g.getLinks(openFile);
   }
+  return new Set<Uri>();
 }
 
 // this method is called when your extension is activated
 // your extension is activated the very first time the command is executed
-export function activate(context: ExtensionContext) {
+export async function activate(context: ExtensionContext) {
   // Use the console to output diagnostic information (console.log) and errors
   // (console.error) This line of code will only be executed once when your
   // extension is activated
   console.log("Zettnote is now active");
+  let graph = await updateGraph();
   const md = { scheme: "file", language: "markdown" };
+  //init(graph);
   /*
   context.subscriptions.push(
     languages.registerCompletionItemProvider(md, new MDCompletionItemProvider())
@@ -172,21 +180,13 @@ export function activate(context: ExtensionContext) {
   // The command has been defined in the package.json file
   // Now provide the implementation of the command with registerCommand
   // The commandId parameter must match the command field in package.json
-  let getLinksCom = commands.registerCommand("zettnote.getLinks", () => {
-    getCurrentLinks();
-  });
+  let getLinksCom = commands.registerCommand("zettnote.getLinks", () => getCurrentLinks(graph));
   let getBacklinksCom = commands.registerCommand(
-    "zettnote.getBacklinks",
-    () => {
-      getCurrentBacklinks().then((result) => {
-        console.log(result);
-      });
-    }
-  );
+    "zettnote.getBacklinks", () => getCurrentBacklinks(graph));
 
   context.subscriptions.push(getLinksCom);
   context.subscriptions.push(getBacklinksCom);
 }
 
 // this method is called when your extension is deactivated
-export function deactivate() {}
+export function deactivate() { }
