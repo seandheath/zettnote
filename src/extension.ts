@@ -28,7 +28,18 @@ class Graph {
 
   getNodeNames() {
     const nodeArray = Array.from(this.nodes);
-    return nodeArray.map((node) => fname(node));
+    return nodeArray.map((node) => getName(node));
+  }
+
+  getUri(link: string) {
+    const nodeArray = Array.from(this.nodes);
+    const matches = nodeArray.filter((node) => {
+      return getName(node) === link;
+    });
+    if (matches.length > 1) {
+      console.error("Multiple nodes match the provided link: " + link);
+    }
+    return matches[0];
   }
 
   addNode(u: vscode.Uri) {
@@ -60,26 +71,16 @@ class Graph {
   }
 }
 
-function fname(u: vscode.Uri) {
+function getName(u: vscode.Uri) {
   return basename(u.fsPath, "." + u.fsPath.split(".").pop());
 }
 
 async function getFilesFromLinks(links: Set<string>) {
   const allFiles = await getWorkspaceFiles();
   const linkedFiles = Array.from(allFiles).filter((f) => {
-    return links.has(fname(f));
+    return links.has(getName(f));
   });
   return linkedFiles;
-}
-
-async function getFileFromLink(link: string) {
-  const file = await getFilesFromLinks(new Set(link));
-  if (file.length > 1) {
-    // Shouldn't happen...
-    console.error("more than one file matched link");
-  }
-  // return the first item from the set (should only be one)
-  return file[0];
 }
 
 async function getLinks(file: vscode.Uri) {
@@ -148,10 +149,34 @@ class MDCompletionItemProvider implements vscode.CompletionItemProvider {
   }
 }
 
+class MDDefinitionProvider implements vscode.DefinitionProvider {
+  graph: Graph;
+
+  constructor(g: Graph) {
+    this.graph = g;
+  }
+
+  provideDefinition(document: vscode.TextDocument, position: vscode.Position) {
+    var range = document.getWordRangeAtPosition(position, LINK_REGEX);
+    if (range) {
+      // The character position is within the tag
+      const link = document.lineAt(position).text.slice(range.start.character + 2, range.end.character - 2);
+      const uri = this.graph.getUri(link);
+      if (uri) {
+        return new vscode.Location(uri, new vscode.Position(0, 0));
+      } else {
+        return undefined;
+      }
+    } else {
+      return undefined;
+    }
+  }
+}
+
 function getCurrentBacklinks(g: Graph) {
   const openFile = vscode.window.activeTextEditor?.document.uri;
   if (openFile) {
-    console.debug("Checking backlinks for: " + fname(openFile));
+    console.debug("Checking backlinks for: " + getName(openFile));
     const backlinks = g.getBacklinks(openFile);
     return backlinks;
   }
@@ -180,7 +205,8 @@ export async function activate(context: vscode.ExtensionContext) {
 
   const md = { scheme: "file", language: "markdown" };
   context.subscriptions.push(
-    vscode.languages.registerCompletionItemProvider(md, new MDCompletionItemProvider(graph), '[')
+    vscode.languages.registerCompletionItemProvider(md, new MDCompletionItemProvider(graph), '['),
+    vscode.languages.registerDefinitionProvider(md, new MDDefinitionProvider(graph))
   );
 
   // The command has been defined in the package.json file
