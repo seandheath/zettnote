@@ -1,6 +1,6 @@
 // The module 'vscode' contains the VS Code extensibility API
 // Import the module and reference it with the alias vscode in your code below
-import { existsSync, writeFileSync } from "fs";
+import { existsSync, readFile, writeFileSync } from "fs";
 import { basename, dirname, join, normalize, relative, resolve } from "path";
 import {
   CancellationToken,
@@ -16,12 +16,45 @@ import {
   window,
   workspace,
 } from "vscode";
-var graph = require("graph-data-structure");
+import { getEnabledCategories } from "trace_events";
+
 enum Status {
   incomplete,
   complete,
   running,
 }
+
+class Graph {
+  nodes: Set<Uri>;
+  edges: Set<[Uri, Uri]>;
+  constructor() {
+    this.nodes = new Set<Uri>();
+    this.edges = new Set<[Uri, Uri]>();
+  }
+
+  addNode(u: Uri) {
+    this.nodes.add(u);
+  }
+
+  addEdge(start: Uri, stop: Uri) {
+    this.edges.add([start, stop]);
+  }
+
+  getLinks(uri: Uri, i = 0) {
+    return new Set(
+      Array.from(this.edges).map((e) => {
+        e[i] === uri;
+        // If i is 0 get the 1 index, otherwise it's 1 so get the 0 index
+        return e[(i = 0 ? 1 : 0)];
+      })
+    );
+  }
+
+  getBacklinks(u: Uri) {
+    return this.getLinks(u, 1);
+  }
+}
+var sync_status = Status.incomplete;
 
 const FILE_GLOB = "*.{md,markdown}";
 const LINK_REGEX = /\[\[[\w\-. ]+\]\]/i;
@@ -30,28 +63,27 @@ function fname(u: Uri) {
   return basename(u.fsPath, "." + u.fsPath.split(".").pop());
 }
 
-async function getFilesFromString(links: Set<string>) {
-  return getWorkspaceFiles().then((res) => {
-    return new Set(
-      res.filter((u) => {
-        console.debug(fname(u) + " " + links.has(fname(u)));
-        links.has(fname(u));
-      })
-    );
+function getFilesFromString(links: Set<string>) {
+  return getWorkspaceFiles().then((files) => {
+    return files.filter((f) => {
+      return links.has(fname(f));
+    });
   });
 }
 
-async function getLinks(file: Uri) {
-  return workspace.fs.readFile(file).then((res) => {
-    const links = new Set(
-      res
+function getLinks(file: Uri) {
+  return workspace.fs
+    .readFile(file)
+    .then((res) => {
+      return res
         .toString()
         .split(/\s/)
         .filter((w) => w.match(LINK_REGEX))
-        .map((w) => w.slice(2, -2))
-    );
-    return getFilesFromString(links);
-  });
+        .map((w) => w.slice(2, -2));
+    })
+    .then((links) => {
+      return getFilesFromString(new Set(links));
+    });
 }
 
 function getBacklinks(target: Uri, files: Set<Uri>): Set<Uri> {
@@ -63,19 +95,36 @@ function getBacklinks(target: Uri, files: Set<Uri>): Set<Uri> {
     console.debug("Checking file :" + basename(file.fsPath));
     getLinks(file).then((res) => {
       console.debug("Got links: " + res);
-      if (res.has(target)) {
-        console.debug("Found backlink");
-        backlinks.add(file);
-      }
+      //if (res.has(target)) {
+      //console.debug("Found backlink");
+      //backlinks.add(file);
+      //}
     });
   });
   return backlinks;
 }
 
-function getNodes() {
-  const files = workspace.findFiles("**/" + FILE_GLOB).then((res) => {
-    res.map((f) => graph.addNode(fname(f)));
+function getWorkspaceFiles() {
+  return workspace.findFiles("**/" + FILE_GLOB).then((files) => {
+    return files.filter((file) => file.scheme === "file");
   });
+}
+
+function getEdges(u: Uri) {
+  const links = await getLinks(u);
+  return links;
+}
+
+function sync(g: Graph) {
+  const files = await getWorkspaceFiles();
+  files.forEach(async (file) => {
+    g.addNode(file);
+    const edges = await getEdges(file);
+    edges.forEach((edge) => {
+      g.addEdge(file, edge);
+    });
+  });
+  return g;
 }
 
 /*
@@ -91,12 +140,12 @@ class MDCompletionItemProvider implements CompletionItemProvider {
 
 function getCurrentBacklinks() {
   const openFile = window.activeTextEditor?.document.uri;
+  var retVal = new Set<Uri>();
   if (openFile) {
-    getWorkspaceFiles().then((res) => {
-      const links = getBacklinks(openFile, new Set(res));
-      console.debug(links);
-    });
+    const g = await sync(new Graph());
+    retVal = g.getBacklinks(openFile);
   }
+  return retVal;
 }
 
 function getCurrentLinks() {
@@ -129,7 +178,9 @@ export function activate(context: ExtensionContext) {
   let getBacklinksCom = commands.registerCommand(
     "zettnote.getBacklinks",
     () => {
-      getCurrentBacklinks();
+      getCurrentBacklinks().then((result) => {
+        console.log(result);
+      });
     }
   );
 
