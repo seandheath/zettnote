@@ -1,23 +1,17 @@
 // The module 'vscode' contains the VS Code extensibility API
 // Import the module and reference it with the alias vscode in your code below
-import { existsSync, readFile, writeFileSync } from "fs";
+import { existsSync, readFile, writeFileSync, link } from "fs";
 import { basename, dirname, join, normalize, relative, resolve } from "path";
 import { getEnabledCategories } from "trace_events";
 import { downloadAndUnzipVSCode } from "vscode-test";
 import vscode = require('vscode');
 
-enum Status {
-  incomplete,
-  complete,
-  running,
-}
-
 const FILE_GLOB = "*.{md,markdown}";
 const LINK_REGEX = /\[\[[\w\-. ]+\]\]/i;
 
-class Graph {
-  nodes: Set<vscode.Uri>;
-  edges: Set<[vscode.Uri, vscode.Uri]>;
+class ZGraph {
+  private nodes: Set<vscode.Uri>;
+  private edges: Set<[vscode.Uri, vscode.Uri]>;
   initialized: Boolean;
 
   constructor() {
@@ -26,9 +20,22 @@ class Graph {
     this.initialized = false;
   }
 
+  update(g: ZGraph) {
+    this.nodes = g.nodes;
+    this.edges = g.edges;
+  }
+
+  has(u: vscode.Uri) {
+    return this.nodes.has(u);
+  }
+
   getNodeNames() {
     const nodeArray = Array.from(this.nodes);
     return nodeArray.map((node) => getName(node));
+  }
+
+  getNodes() {
+    return this.nodes;
   }
 
   getUri(link: string) {
@@ -111,25 +118,24 @@ async function asyncForEach(array: any, callback: any) {
   }
 }
 
-async function updateGraph(g: Graph) {
+async function updateGraph(g: ZGraph) {
   const files = await getWorkspaceFiles();
-  const tg = new Graph();
+  const tg = new ZGraph();
   await asyncForEach(Array.from(files), async (file: vscode.Uri) => {
     const edges = await getEdges(file);
     tg.addNode(file);
     tg.addEdges(file, edges);
 
   });
-  g.nodes = tg.nodes;
-  g.edges = tg.edges;
+  g.update(tg);
   g.initialized = true;
   return g;
 };
 
-class MDCompletionItemProvider implements vscode.CompletionItemProvider {
-  graph: Graph;
+class ZCompletionItemProvider implements vscode.CompletionItemProvider {
+  private graph: ZGraph;
 
-  constructor(g: Graph) {
+  constructor(g: ZGraph) {
     this.graph = g;
   }
 
@@ -149,10 +155,10 @@ class MDCompletionItemProvider implements vscode.CompletionItemProvider {
   }
 }
 
-class MDDefinitionProvider implements vscode.DefinitionProvider {
-  graph: Graph;
+class ZDefinitionProvider implements vscode.DefinitionProvider {
+  private graph: ZGraph;
 
-  constructor(g: Graph) {
+  constructor(g: ZGraph) {
     this.graph = g;
   }
 
@@ -173,7 +179,7 @@ class MDDefinitionProvider implements vscode.DefinitionProvider {
   }
 }
 
-function getCurrentBacklinks(g: Graph) {
+function getCurrentBacklinks(g: ZGraph) {
   const openFile = vscode.window.activeTextEditor?.document.uri;
   if (openFile) {
     console.debug("Checking backlinks for: " + getName(openFile));
@@ -184,38 +190,94 @@ function getCurrentBacklinks(g: Graph) {
   return new Set<vscode.Uri>();
 }
 
-function getCurrentLinks(g: Graph) {
+function getCurrentLinks(g: ZGraph) {
   const openFile = vscode.window.activeTextEditor?.document.uri;
   if (openFile) {
     //return getLinks(openFile);
-    return g.getLinks(openFile);
+    const links = getLinks(openFile);
+    const files = getFilesFromLinks(links);
+    g.updateLinks(links);
+
+    return links;
   }
   return new Set<vscode.Uri>();
+}
+
+class ZLink extends vscode.TreeItem {
+  private uri: vscode.Uri;
+  constructor(u: vscode.Uri) {
+    const label = getName(u);
+    super(label, vscode.TreeItemCollapsibleState.None);
+    this.uri = u;
+  }
+}
+interface LinkProvider {
+  (g: ZGraph): Set<vscode.Uri>;
+}
+class ZTreeProvider implements vscode.TreeDataProvider<ZLink> {
+  private _onDidChangeTreeData: vscode.EventEmitter<ZLink | undefined> = new vscode.EventEmitter<ZLink | undefined>();
+  readonly onDidChangeTreeData: vscode.Event<ZLink | undefined> = this._onDidChangeTreeData.event;
+  private graph: ZGraph;
+  private linkProvider: LinkProvider;
+
+  constructor(g: ZGraph, lp: any) {
+    this.graph = g;
+    this.linkProvider = lp;
+  }
+
+  getTreeItem(link: ZLink) {
+    return link;
+  }
+
+  getChildren(link?: ZLink) {
+    if (link) {
+      return undefined;
+    } else {
+      // this is the root case
+      const links = Array.from(this.linkProvider(this.graph));
+      return Promise.resolve(links.map((link) => new ZLink(link)));
+    }
+  }
+
+  refresh(): void {
+    this._onDidChangeTreeData.fire(undefined);
+  }
 }
 
 // this method is called when your extension is activated
 // your extension is activated the very first time the command is executed
 export async function activate(context: vscode.ExtensionContext) {
+
   // Use the console to output diagnostic information (console.log) and errors
   // (console.error) This line of code will only be executed once when your
   // extension is activated
   console.log("Zettnote is now active");
-  var graph = new Graph();
+  let graph = new ZGraph();
   graph = await updateGraph(graph);
+  let linkTree = new ZTreeProvider(graph, getCurrentLinks);
+  let backlinkTree = new ZTreeProvider(graph, getCurrentBacklinks);
+
+  vscode.window.registerTreeDataProvider('ZLinks', linkTree);
+  vscode.window.registerTreeDataProvider('ZBacklinks', backlinkTree);
 
   const md = { scheme: "file", language: "markdown" };
   context.subscriptions.push(
-    vscode.languages.registerCompletionItemProvider(md, new MDCompletionItemProvider(graph), '['),
-    vscode.languages.registerDefinitionProvider(md, new MDDefinitionProvider(graph))
+    vscode.languages.registerCompletionItemProvider(md, new ZCompletionItemProvider(graph), '['),
+    vscode.languages.registerDefinitionProvider(md, new ZDefinitionProvider(graph))
   );
+
 
   // The command has been defined in the package.json file
   // Now provide the implementation of the command with registerCommand
   // The commandId parameter must match the command field in package.json
+  let updateTreeViewsCom = vscode.commands.registerCommand("zettnote.updateTreeViews", () => {
+    linkTree.refresh();
+    backlinkTree.refresh();
+  });
   let getLinksCom = vscode.commands.registerCommand("zettnote.getLinks", () => getCurrentLinks(graph));
   let getBacklinksCom = vscode.commands.registerCommand(
     "zettnote.getBacklinks", () => getCurrentBacklinks(graph));
-
+  context.subscriptions.push(updateTreeViewsCom);
   context.subscriptions.push(getLinksCom);
   context.subscriptions.push(getBacklinksCom);
 }

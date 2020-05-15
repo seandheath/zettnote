@@ -14,14 +14,30 @@
   ],
   "main": "./out/extension.js",
   "contributes": {
+    "views": {
+      "explorer": [
+        {
+          "id": "ZLinks",
+          "name": "LINKS"
+        },
+        {
+          "id": "ZBacklinks",
+          "name": "BACKLINKS"
+        }
+      ]
+    },
     "commands": [
       {
+        "command": "zettnote.updateTreeViews",
+        "title": "ZettNote Update Links"
+      },
+      {
         "command": "zettnote.getLinks",
-        "title": "Get Links"
+        "title": "ZettNote Get Links"
       },
       {
         "command": "zettnote.getBacklinks",
-        "title": "Get Backlinks"
+        "title": "ZettNote Get Backlinks"
       }
     ]
   },
