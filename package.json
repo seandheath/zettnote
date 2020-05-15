@@ -10,8 +10,7 @@
     "Other"
   ],
   "activationEvents": [
-    "onCommand:zettnote.getLinks",
-    "onCommand:zettnote.getBacklinks"
+    "onLanguage:markdown"
   ],
   "main": "./out/extension.js",
   "contributes": {
