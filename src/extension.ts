@@ -82,12 +82,11 @@ class ZDefinitionProvider implements vscode.DefinitionProvider {
     if (range) {
       // The character position is within the tag
       const link = document.lineAt(position).text.slice(range.start.character + 2, range.end.character - 2);
-      const uri = await getFileFromLink(link);
-      if (uri) {
-        return new vscode.Location(uri, new vscode.Position(0, 0));
-      } else {
-        return undefined;
+      var uri = await getFileFromLink(link);
+      if (!uri) {
+        uri = newLinkFile(link);
       }
+      return new vscode.Location(uri, new vscode.Position(0, 0));
     } else {
       return undefined;
     }
@@ -125,9 +124,31 @@ async function getCurrentLinks() {
   return undefined;
 }
 
+function newLinkFile(link: string) {
+  const fileName = vscode.workspace.rootPath + `/${link}.md`;
+  const contents = `# ${link}`;
+  writeFileSync(fileName, contents);
+  return vscode.Uri.file(fileName);
+}
+
+async function openLink(link: string) {
+  var file = await getFileFromLink(link);
+  if (!file) {
+    file = newLinkFile(link);
+  }
+  vscode.window.showTextDocument(file);
+  //vscode.commands.executeCommand('vscode.open', file);
+  //vscode.workspace.openTextDocument(file);
+}
+
 class ZLink extends vscode.TreeItem {
   constructor(s: string) {
     super(s, vscode.TreeItemCollapsibleState.None);
+    this.command = {
+      command: "zettnote.openLink",
+      title: "Open Link",
+      arguments: [s]
+    }
   }
 }
 interface LinkProvider {
@@ -155,7 +176,10 @@ class ZTreeProvider implements vscode.TreeDataProvider<ZLink> {
       const links = await this.linkProvider();
       if (links) {
         const arrayLinks = Array.from(links);
-        return Promise.resolve(arrayLinks.map((link) => new ZLink(link)));
+        const zLinks = arrayLinks.map((link) => {
+          return new ZLink(link);
+        });
+        return Promise.resolve(zLinks);
       } else {
         return undefined;
       }
@@ -195,13 +219,8 @@ export async function activate(context: vscode.ExtensionContext) {
   // The command has been defined in the package.json file
   // Now provide the implementation of the command with registerCommand
   // The commandId parameter must match the command field in package.json
-  let updateTreeViewsCom = vscode.commands.registerCommand("zettnote.updateTreeViews", refreshLinks);
-  let getLinksCom = vscode.commands.registerCommand("zettnote.getLinks", () => getCurrentLinks());
-  let getBacklinksCom = vscode.commands.registerCommand(
-    "zettnote.getBacklinks", () => getCurrentBacklinks());
-  context.subscriptions.push(updateTreeViewsCom);
-  context.subscriptions.push(getLinksCom);
-  context.subscriptions.push(getBacklinksCom);
+  let openLinkCom = vscode.commands.registerCommand("zettnote.openLink", (link: string) => { openLink(link) });
+  context.subscriptions.push(openLinkCom);
 
   vscode.workspace.onDidChangeTextDocument(refreshLinks);
   vscode.window.onDidChangeActiveTextEditor(refreshLinks);
