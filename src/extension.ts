@@ -1,9 +1,5 @@
-// The module 'vscode' contains the VS Code extensibility API
-// Import the module and reference it with the alias vscode in your code below
-import { existsSync, readFile, writeFileSync, link, linkSync } from "fs";
-import { basename, dirname, join, normalize, relative, resolve } from "path";
-import { getEnabledCategories } from "trace_events";
-import { downloadAndUnzipVSCode } from "vscode-test";
+import { writeFileSync } from "fs";
+import { basename } from "path";
 import vscode = require('vscode');
 
 const FILE_GLOB = "*.{md,markdown}";
@@ -13,21 +9,13 @@ function getName(u: vscode.Uri) {
   return basename(u.fsPath, "." + u.fsPath.split(".").pop());
 }
 
-async function getFilesFromLinks(links: Set<string>) {
-  const allFiles = await getWorkspaceFiles();
-  const linkedFiles = Array.from(allFiles).filter((f) => {
-    return links.has(getName(f));
-  });
-  return linkedFiles;
-}
-
 async function getFileFromLink(link: string) {
   const allFiles = await getWorkspaceFiles();
   const linkedFiles = Array.from(allFiles.filter((f) => {
     return getName(f) == link;
   }));
+  // TODO: some error checking here
   return linkedFiles[0];
-
 }
 
 async function getAllLinks() {
