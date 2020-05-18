@@ -1,6 +1,6 @@
 # zettnote README
 
-This is the README for your extension "zettnote". After writing up a brief description, we recommend including the following sections.
+This is tkjkjhe README for your extension "zettnote". After writing up a brief description, we recommend including the following sections.
 
 ## Features
 

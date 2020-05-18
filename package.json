@@ -14,14 +14,27 @@
   ],
   "main": "./out/extension.js",
   "contributes": {
-    "views": {
-      "explorer": [
+    "viewsContainers": {
+      "activitybar": [
         {
-          "id": "ZLinks",
+          "id": "zettnote-explorer",
+          "title": "ZettNote Explorer",
+          "icon": "resources/explorer.svg"
+        }
+      ]
+    },
+    "views": {
+      "zettnote-explorer": [
+        {
+          "id": "znotes",
+          "name": "NOTES"
+        },
+        {
+          "id": "zlinks",
           "name": "LINKS"
         },
         {
-          "id": "ZBacklinks",
+          "id": "zbacklinks",
           "name": "BACKLINKS"
         }
       ]
