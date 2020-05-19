@@ -4,7 +4,7 @@ Zettnote is a VSCode extension that adds functionality to implement a metadata-f
 
 ## Features
 
-Describe specific features of your extension including screenshots of your extension in action. Image paths are relative to this README file.
+Zettnote doesn't require any metadata, database, or modification of typical markdown files beyond using wikilink syntax. When a markdown file is opened it scans the workspace for other markdown files and generates the list of links and backlinks dynamically.
 
 Zettnote supports the following features:
 * Wikilink style syntax: `[[link]]`
@@ -25,8 +25,11 @@ This extension contributes the following settings:
 * `zettnote.createNote`: defaults to `[Ctrl/Cmd]+Alt+n` to create or open a note.
 * TODO: `zettnote.attachFile`: moves file to attachment folder and creates a hyperlink to it.
 * TODO: `zettnote.showGraph`: generates dot graph of notes.
+* TODO: `zettnote.exportNote`: export note, stripping wikilinks or converting them to normal text.
 
 ## Known Issues
+
+* Not sure how the extension will work with a large amount of notes, currently seems good with dozens. Have not implemented caching of links.
 
 ## Release Notes
 
