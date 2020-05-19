@@ -1,6 +1,9 @@
 import { writeFileSync } from "fs";
 import { basename } from "path";
+import { getLinksInWorkspace } from "./linkProviders";
 import * as vscode from 'vscode';
+import * as cp from 'child_process';
+import * as sm from './sortMethods';
 
 const FILE_GLOB = "*.{md,markdown}";
 
@@ -60,8 +63,6 @@ export async function openLink(link: string) {
         file = newNote(link);
     }
     vscode.window.showTextDocument(file);
-    //vscode.commands.executeCommand('vscode.open', file);
-    //vscode.workspace.openTextDocument(file);
 }
 
 /**
@@ -73,3 +74,54 @@ export async function getWorkspaceFiles() {
     });
 }
 
+
+class LinkItem implements vscode.QuickPickItem {
+    label: string;
+    constructor(label: string) {
+        this.label = label;
+    }
+}
+
+export async function createNote() {
+    const noteName = await pickNote();
+    if (noteName) {
+        openLink(noteName);
+    }
+}
+
+async function pickNote() {
+    const links = await getLinksInWorkspace(sm.sortByDate);
+    const disposables: vscode.Disposable[] = [];
+    if (links) {
+        const items = links.map(i => new LinkItem(i));
+        try {
+            return await new Promise<string | undefined>((resolve, reject) => {
+                const input = vscode.window.createQuickPick<LinkItem>();
+                input.placeholder = 'Type link name';
+                input.items = items;
+                disposables.push(
+                    input.onDidChangeValue(value => {
+                        if (!value) {
+                            input.items = items;
+                            return;
+                        }
+                        input.items = [new LinkItem(value)].concat(items);
+                    }),
+                    input.onDidChangeSelection(items => {
+                        const item = items[0];
+                        resolve(item.label);
+                        input.hide();
+                    }),
+                    input.onDidHide(() => {
+                        resolve(undefined);
+                        input.dispose();
+                    })
+                );
+                input.show();
+            });
+        } finally {
+            disposables.forEach(d => d.dispose());
+        }
+
+    }
+}

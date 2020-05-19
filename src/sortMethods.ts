@@ -7,11 +7,11 @@ export type SortMethod = (arr: any) => string[];
 /**
  * Returns an array of links sorted by last modification newest to oldest
  */
-export function sortByDate(arr: Array<vscode.Uri>) {
+export function sortByDateInverse(arr: Array<vscode.Uri>) {
     return arr.sort((a, b) => {
         const astat = statSync(a.fsPath);
         const bstat = statSync(b.fsPath);
-        return astat.mtime.getDate() - bstat.mtime.getDate();
+        return astat.mtimeMs - bstat.mtimeMs;
     }).map(i => getName(i));
 }
 
@@ -19,8 +19,8 @@ export function sortByDate(arr: Array<vscode.Uri>) {
  * Returns an array of links sorted by last modification oldest to newest
  * @param arr array of Uris to be sorted
  */
-export function sortByDateInverse(arr: Array<vscode.Uri>) {
-    return sortByDate(arr).reverse();
+export function sortByDate(arr: Array<vscode.Uri>) {
+    return sortByDateInverse(arr).reverse();
 }
 
 /**

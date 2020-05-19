@@ -23,14 +23,26 @@ export class ZTreeView {
     private title: string;
 
     constructor(id: string, name: string, linkProvider: lp.LinkProvider, sortMethod: sm.SortMethod) {
-        this.data = new ZTreeProvider(linkProvider, sortMethod);
+        this.data = new ZTreeProvider(this, linkProvider, sortMethod);
         this.view = vscode.window.createTreeView(id, { treeDataProvider: this.data });
         this.title = name;
     }
 
     refresh() {
         this.data.refresh();
-        this.view.title = this.title + " [" + this.data.getCount() + "]";
+    }
+
+    setLinkNumber(num: number) {
+        this.view.title = this.title + (num ? " - " + num : "");
+    }
+
+    toggleSortOrder() {
+        var sortMethod = this.data.toggleSortOrder();
+        // Update icons
+    }
+
+    toggleSortType() {
+        var sortMethod = this.data.toggleSortType();
     }
 }
 
@@ -43,16 +55,50 @@ class ZTreeProvider implements vscode.TreeDataProvider<ZLink> {
     private linkProvider: lp.LinkProvider;
     private sortMethod: sm.SortMethod;
     private count: number;
+    private container: ZTreeView;
 
-    constructor(linkProvider: lp.LinkProvider, sortMethod: sm.SortMethod) {
+    constructor(container: ZTreeView, linkProvider: lp.LinkProvider, sortMethod: sm.SortMethod) {
         this.linkProvider = linkProvider;
         this.sortMethod = sortMethod;
         this.count = 0;
+        this.container = container;
     }
 
     setSortMethod(sm: sm.SortMethod) {
         this.sortMethod = sm;
         this.refresh();
+    }
+
+    toggleSortOrder() {
+        if (this.sortMethod === sm.sortByDate) {
+            this.setSortMethod(sm.sortByDateInverse);
+        } else if (this.sortMethod === sm.sortByName) {
+            this.setSortMethod(sm.sortByNameInverse);
+        } else if (this.sortMethod === sm.sortByNameInverse) {
+            this.setSortMethod(sm.sortByName);
+        } else {
+            this.setSortMethod(sm.sortByDate);
+        }
+    }
+
+    toggleSortType() {
+        var sortMethod = sm.sortByDate;
+        if (this.sortMethod === sm.sortByDate) {
+            sortMethod = sm.sortByName;
+        } else if (this.sortMethod === sm.sortByName) {
+            sortMethod = sm.sortByDate;
+        } else if (this.sortMethod === sm.sortByNameInverse) {
+            sortMethod = sm.sortByDateInverse;
+        } else {
+            sortMethod = sm.sortByNameInverse;
+        }
+        this.setSortMethod(sortMethod);
+        return sortMethod;
+    }
+
+    setCount(num: number) {
+        this.count = num;
+        this.container.setLinkNumber(this.count);
     }
 
     getCount() {
@@ -75,12 +121,13 @@ class ZTreeProvider implements vscode.TreeDataProvider<ZLink> {
             //const links = Array.from(this.linkProvider());
             const links = await this.linkProvider(this.sortMethod);
             if (links) {
-                this.count = links.length;
+                this.setCount(links.length);
                 const zLinks = links.map((link) => {
                     return new ZLink(link);
                 });
                 return Promise.resolve(zLinks);
             } else {
+                this.setCount(0);
                 return undefined;
             }
         }
