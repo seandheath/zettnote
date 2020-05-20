@@ -2,7 +2,7 @@ import { ZCompletionItemProvider } from "./completionProvider";
 import { ZDefinitionProvider } from "./definitionProvider";
 import { ZTreeView } from "./treeProvider";
 import { createNote, openLink } from './linkFunctions';
-import { attachFile } from './attachFile';
+import { attachFile, openAttachment } from './attachments';
 import * as lp from './linkProviders';
 import * as sm from './sortMethods';
 import * as vscode from 'vscode';
@@ -45,10 +45,11 @@ export async function activate(context: vscode.ExtensionContext) {
   let createNoteCom = vscode.commands.registerCommand("zettnote.createNote", createNote);
   let openLinkCom = vscode.commands.registerCommand("zettnote.openLink", openLink);
   let attachFileCom = vscode.commands.registerCommand("zettnote.attachFile", attachFile);
+  let openAttachmentCom = vscode.commands.registerCommand("zettnote.openAttachment", openAttachment);
   context.subscriptions.push(createNoteCom);
   context.subscriptions.push(openLinkCom);
   context.subscriptions.push(attachFileCom);
-
+  context.subscriptions.push(openAttachmentCom);
 }
 
 // this method is called when your extension is deactivated

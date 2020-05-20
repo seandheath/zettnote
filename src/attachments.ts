@@ -2,6 +2,29 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as vscode from 'vscode';
 
+const open = require('open');
+
+const MD_LINK_REGEX = /(\[[^\]]*\]\(\s*?)(\S+?)(\s+[^\)]*)?\)/g;
+
+export async function openAttachment() {
+    const editor = vscode.window.activeTextEditor;
+    if (editor) {
+        const range = editor.document.getWordRangeAtPosition(editor.selection.active, MD_LINK_REGEX);
+        if (range && range.isSingleLine) {
+            const line = editor.document.lineAt(range.start.line);
+            const fullLink = line.text.slice(range.start.character, range.end.character);
+            const match = MD_LINK_REGEX.exec(fullLink);
+            if (match && match[2]) {
+                const fileName = path.basename(match[2]);
+                const filePath = getAttachmentFolder();
+                const fullPath = path.join(filePath, fileName);
+                const proc = await open(fullPath);
+            }
+        }
+    }
+    return undefined;
+}
+
 function getAttachmentFolder() {
     const config = vscode.workspace.getConfiguration('zettnote.attachments');
     var rootPath = '';

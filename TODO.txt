@@ -1,3 +1,4 @@
 - add "open link" function
 - add a "clean attachments" function that shows all unlinked attachments 
 - add "update attachments" to resync attachments (only works if you use absolute / workspace relative attachments)
+- look into DocumentLinkProvider API - might be better than what I cobbled together

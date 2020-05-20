@@ -100,6 +100,11 @@
         "command": "zettnote.attachFile",
         "key": "ctrl+alt+a",
         "mac": "alt+cmd+a"
+      },
+      {
+        "command": "zettnote.openAttachment",
+        "key": "ctrl+alt+o",
+        "mac": "alt+cmd+o"
       }
     ],
     "grammars": [
@@ -123,15 +128,16 @@
   "devDependencies": {
     "@types/glob": "^7.1.1",
     "@types/mocha": "^7.0.2",
-    "@types/node": "^13.11.0",
-    "@types/vscode": "^1.45.0",
-    "@typescript-eslint/eslint-plugin": "^2.30.0",
-    "@typescript-eslint/parser": "^2.30.0",
+    "@types/node": "^13.13.8",
+    "@types/vscode": "^1.45.1",
+    "@typescript-eslint/eslint-plugin": "^2.34.0",
+    "@typescript-eslint/parser": "^2.34.0",
     "eslint": "^6.8.0",
     "glob": "^7.1.6",
     "graph-data-structure": "^1.12.0",
     "mocha": "^7.1.2",
-    "typescript": "^3.9.2",
+    "open": "^7.0.4",
+    "typescript": "^3.9.3",
     "vscode-test": "^1.3.0"
   }
 }
