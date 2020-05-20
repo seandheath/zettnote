@@ -17,15 +17,20 @@
     "configuration": {
       "title": "ZettNote",
       "properties": {
-        "zettnote.attachments.singleFolder": {
-          "type": "boolean",
-          "default": true,
-          "description": "Use a single attachment folder for all notes."
+        "zettnote.attachments.folderType": {
+          "type": "string",
+          "default": "relative to workspace",
+          "enum": [
+            "absolute",
+            "relative to workspace",
+            "relative to note"
+          ],
+          "description": "Identify where to store attachments. Absolute: provide the absolute file path for the attachment folder. Relative to workspace: provide the relative path from the workspace root folder [default]. Relative to note: provide the relative path to use from the active note."
         },
         "zettnote.attachments.path": {
           "type": "string",
           "default": "./attachments",
-          "description": "Put attached files in the specified folder. Path is relative to the workspace root if using a single folder for all notes. If not using a single folder then the path is relative to the location of the note the files are being attached from."
+          "description": "Put attached files in the specified folder. See 'folderType' for details."
         },
         "zettnote.views.enableNotes": {
           "type": "boolean",
