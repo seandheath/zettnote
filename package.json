@@ -14,6 +14,36 @@
   ],
   "main": "./out/extension.js",
   "contributes": {
+    "configuration": {
+      "title": "ZettNote",
+      "properties": {
+        "zettnote.attachments.singleFolder": {
+          "type": "boolean",
+          "default": true,
+          "description": "Use a single attachment folder for all notes."
+        },
+        "zettnote.attachments.path": {
+          "type": "string",
+          "default": "./attachments",
+          "description": "Put attached files in the specified folder. Path is relative to the workspace root if using a single folder for all notes. If not using a single folder then the path is relative to the location of the note the files are being attached from."
+        },
+        "zettnote.views.enableNotes": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable the 'NOTES' view in the explorer sidebar"
+        },
+        "zettnote.views.enableLinks": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable the 'LINKS' view in the explorer sidebar"
+        },
+        "zettnote.views.enableBacklinks": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable the 'BACKLINKS' view in the explorer sidebar"
+        }
+      }
+    },
     "viewsContainers": {
       "activitybar": [
         {
@@ -60,6 +90,11 @@
         "command": "zettnote.createNote",
         "key": "ctrl+alt+n",
         "mac": "alt+cmd+n"
+      },
+      {
+        "command": "zettnote.attachFile",
+        "key": "ctrl+alt+a",
+        "mac": "alt+cmd+a"
       }
     ],
     "grammars": [
