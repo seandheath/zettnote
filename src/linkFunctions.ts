@@ -76,8 +76,12 @@ export async function getWorkspaceFiles() {
 
 class LinkItem implements vscode.QuickPickItem {
     label: string;
-    constructor(label: string) {
+    description: (string | undefined);
+    constructor(label: string, description?: string) {
         this.label = label;
+        if (description) {
+            this.description = description;
+        }
     }
 }
 
@@ -97,14 +101,18 @@ async function pickNote() {
             return await new Promise<string | undefined>((resolve, reject) => {
                 const input = vscode.window.createQuickPick<LinkItem>();
                 input.placeholder = 'Type link name';
+                input.title = "Find or create note";
                 input.items = items;
                 disposables.push(
                     input.onDidChangeValue(value => {
-                        if (!value) {
+                        input.busy = true;
+                        if ((!value) || (value === input.items[0].label)) {
                             input.items = items;
-                            return;
+                        } else {
+                            input.items = [new LinkItem(value, "create new note")].concat(items);
                         }
-                        input.items = [new LinkItem(value)].concat(items);
+                        input.busy = false;
+                        return;
                     }),
                     input.onDidChangeSelection(items => {
                         const item = items[0];

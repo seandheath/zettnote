@@ -43,7 +43,6 @@ export const getCurrentLinks: LinkProvider = async (sm: SortMethod) => {
     if (openFile) {
         const links = await getLinks(openFile, sm);
         if (links) {
-            //const files = await getFilesFromLinks(links);
             return sm(links);
         }
     }
@@ -70,8 +69,6 @@ async function getLinks(file: vscode.Uri, sm: SortMethod): Promise<string[] | un
     const matches = contents.toString().match(LINK_REGEX);
     if (matches) {
         const links = matches.map((match) => match.slice(2, -2));
-        //const uris = await getFilesFromLinks(links);
-        //return sm(uris).map(i => getName(i));
         return sortText(links);
     }
     return undefined;
