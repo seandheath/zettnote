@@ -1,0 +1,10 @@
+{
+  "scopeName": "source.wikilink",
+  "injectionSelector": "L:text.html.markdown",
+  "patterns": [
+    {
+      "name": "string.other.link.wikilink",
+      "match": "(\\[\\[[\\w\\-. ]+\\]\\])+?"
+    }
+  ]
+}

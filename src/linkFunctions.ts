@@ -2,7 +2,6 @@ import { writeFileSync } from "fs";
 import { basename } from "path";
 import { getLinksInWorkspace } from "./linkProviders";
 import * as vscode from 'vscode';
-import * as cp from 'child_process';
 import * as sm from './sortMethods';
 
 const FILE_GLOB = "*.{md,markdown}";

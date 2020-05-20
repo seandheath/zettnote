@@ -64,9 +64,11 @@
     ],
     "grammars": [
       {
-        "language": "zettnote",
-        "scopeName": "source.zettnote",
-        "path": "./syntaxes/zettnote.tmLanguage.json"
+        "injectTo": [
+          "text.html.markdown"
+        ],
+        "scopeName": "source.wikilink",
+        "path": "./syntaxes/wikilink.json"
       }
     ]
   },
