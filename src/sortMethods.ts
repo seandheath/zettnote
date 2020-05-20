@@ -2,50 +2,64 @@ import * as vscode from 'vscode';
 import { statSync } from 'fs';
 import { getName } from './linkFunctions';
 
-export type SortMethod = (arr: any) => string[];
+export interface SortMethod {
+    (arr: any): Promise<vscode.Uri[] | undefined>;
+}
 
 /**
  * Returns an array of links sorted by last modification newest to oldest
  */
-export function sortByDateInverse(arr: Array<vscode.Uri>) {
-    return arr.sort((a, b) => {
-        const astat = statSync(a.fsPath);
-        const bstat = statSync(b.fsPath);
-        return astat.mtimeMs - bstat.mtimeMs;
-    }).map(i => getName(i));
-}
+export const sortByDateInverse: SortMethod = async (arr: Array<vscode.Uri>) => {
+    if (arr) {
+        const sorted = arr.sort((a, b) => {
+            const astat = statSync(a.fsPath);
+            const bstat = statSync(b.fsPath);
+            return astat.mtimeMs - bstat.mtimeMs;
+        });
+        return sorted;
+    }
+    return undefined;
+};
 
 /**
  * Returns an array of links sorted by last modification oldest to newest
  * @param arr array of Uris to be sorted
  */
-export function sortByDate(arr: Array<vscode.Uri>) {
-    return sortByDateInverse(arr).reverse();
-}
+export const sortByDate: SortMethod = async (arr: Array<vscode.Uri>) => {
+    if (arr) {
+        const links = await sortByDateInverse(arr);
+        if (links) {
+            return links.reverse();
+        }
+    }
+    return undefined;
+};
 
 /**
  * Returns an array of links sorted a-z
  * @param arr array of Uris to be sorted
  */
-export function sortByName(arr: Array<vscode.Uri>) {
+export const sortByName: SortMethod = async (arr: Array<vscode.Uri>) => {
     const collator = new Intl.Collator(undefined, { numeric: true, sensitivity: 'base' });
-    const names = arr.map(i => getName(i));
-    return sortText(names);
-}
+    if (arr) {
+        const sorted = arr.sort((a, b) => collator.compare(getName(a), getName(b)));
+        if (sorted) {
+            return sorted;
+        }
+    }
+    return undefined;
+};
 
 /**
  * Returns an array of links sorted z-a
  * @param arr array of Uris to be sorted
  */
-export function sortByNameInverse(arr: Array<vscode.Uri>) {
-    return sortByName(arr).reverse();
-}
-
-/**
- * Returns an array of links sorted a-z
- * @param arr array of Uris to be sorted
- */
-export function sortText(arr: Array<string>) {
-    const collator = new Intl.Collator(undefined, { numeric: true, sensitivity: 'base' });
-    return arr.sort((a, b) => collator.compare(a, b));
-}
+export const sortByNameInverse: SortMethod = async (arr: Array<vscode.Uri>) => {
+    if (arr) {
+        const links = await sortByName(arr);
+        if (links) {
+            return links.reverse();
+        }
+    }
+    return undefined;
+};

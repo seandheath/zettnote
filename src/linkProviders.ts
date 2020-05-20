@@ -1,8 +1,10 @@
 import * as vscode from 'vscode';
 import { getWorkspaceFiles, getName, getFilesFromLinks } from './linkFunctions';
-import { SortMethod, sortText } from './sortMethods';
+import { SortMethod, sortByName } from './sortMethods';
 
-export type LinkProvider = (sm: SortMethod) => Promise<string[] | undefined>;
+export interface LinkProvider {
+    (sm: SortMethod): Promise<vscode.Uri[] | undefined>;
+}
 
 export const LINK_REGEX = /(\[\[[\w\-. ]+\]\])+?/gi;
 
@@ -41,7 +43,7 @@ export const getCurrentBacklinks: LinkProvider = async (sm: SortMethod) => {
 export const getCurrentLinks: LinkProvider = async (sm: SortMethod) => {
     const openFile = vscode.window.activeTextEditor?.document.uri;
     if (openFile) {
-        const links = await getLinks(openFile, sm);
+        const links = await getLinks(openFile);
         if (links) {
             return sm(links);
         }
@@ -55,8 +57,11 @@ export const getCurrentLinks: LinkProvider = async (sm: SortMethod) => {
  * @param predicate Filter function to apply
  */
 async function asyncFileFilter(arr: Array<vscode.Uri>, predicate: any) {
-    const results = await Promise.all(arr.map(predicate));
-    return arr.filter((v: any, index: any) => results[index]);
+    if (arr) {
+        const results = await Promise.all(arr.map(predicate));
+        return arr.filter((v: any, index: any) => results[index]);
+    }
+    return undefined;
 }
 
 
@@ -64,12 +69,13 @@ async function asyncFileFilter(arr: Array<vscode.Uri>, predicate: any) {
  * Returns a set of all the links in the given file or undefined if none
  * @param file Uri for the file you want to get links from
  */
-async function getLinks(file: vscode.Uri, sm: SortMethod): Promise<string[] | undefined> {
+async function getLinks(file: vscode.Uri) {
     const contents = await vscode.workspace.fs.readFile(file);
     const matches = contents.toString().match(LINK_REGEX);
     if (matches) {
-        const links = matches.map((match) => match.slice(2, -2));
-        return sortText(links);
+        const names = matches.map((match) => match.slice(2, -2));
+        const links = await getFilesFromLinks(names);
+        return sortByName(links);
     }
     return undefined;
 }

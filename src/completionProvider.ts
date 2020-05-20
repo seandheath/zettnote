@@ -2,6 +2,7 @@ import vscode = require('vscode');
 
 import { getLinksInWorkspace } from './linkProviders';
 import * as sm from './sortMethods';
+import { getName } from './linkFunctions';
 
 /**
  * Provides the dropdown completion list containing all the links in the workspace when you start
@@ -17,7 +18,8 @@ export class ZCompletionItemProvider implements vscode.CompletionItemProvider {
         if (!linePrefix.endsWith('[[')) {
             return undefined;
         }
-        var names = await getLinksInWorkspace(sm.sortByName);
+        var links = await getLinksInWorkspace(sm.sortByName);
+        var names = links?.map(l => getName(l));
         if (names) {
             var items = names.map((name) => {
                 var kind = vscode.CompletionItemKind.File;

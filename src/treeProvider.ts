@@ -1,19 +1,24 @@
 import * as vscode from 'vscode';
 import * as lp from './linkProviders';
 import * as sm from './sortMethods';
+import { getName } from './linkFunctions';
 
 
 /**
  * Creates each item in the tree and sets the click command to open the associated link
  */
 class ZLink extends vscode.TreeItem {
-    constructor(s: string) {
-        super(s, vscode.TreeItemCollapsibleState.None);
+    constructor(link: vscode.Uri) {
+        const label = getName(link);
+        super(label, vscode.TreeItemCollapsibleState.None);
         this.command = {
             command: "zettnote.openLink",
             title: "Open Link",
-            arguments: [s]
+            arguments: [label]
         };
+        this.resourceUri = link;
+        this.description = true;
+        this.label = label;
     }
 }
 
@@ -36,14 +41,6 @@ export class ZTreeView {
         this.view.title = this.title + (num ? " - " + num : "");
     }
 
-    toggleSortOrder() {
-        var sortMethod = this.data.toggleSortOrder();
-        // Update icons
-    }
-
-    toggleSortType() {
-        var sortMethod = this.data.toggleSortType();
-    }
 }
 
 /**
@@ -67,33 +64,6 @@ class ZTreeProvider implements vscode.TreeDataProvider<ZLink> {
     setSortMethod(sm: sm.SortMethod) {
         this.sortMethod = sm;
         this.refresh();
-    }
-
-    toggleSortOrder() {
-        if (this.sortMethod === sm.sortByDate) {
-            this.setSortMethod(sm.sortByDateInverse);
-        } else if (this.sortMethod === sm.sortByName) {
-            this.setSortMethod(sm.sortByNameInverse);
-        } else if (this.sortMethod === sm.sortByNameInverse) {
-            this.setSortMethod(sm.sortByName);
-        } else {
-            this.setSortMethod(sm.sortByDate);
-        }
-    }
-
-    toggleSortType() {
-        var sortMethod = sm.sortByDate;
-        if (this.sortMethod === sm.sortByDate) {
-            sortMethod = sm.sortByName;
-        } else if (this.sortMethod === sm.sortByName) {
-            sortMethod = sm.sortByDate;
-        } else if (this.sortMethod === sm.sortByNameInverse) {
-            sortMethod = sm.sortByDateInverse;
-        } else {
-            sortMethod = sm.sortByNameInverse;
-        }
-        this.setSortMethod(sortMethod);
-        return sortMethod;
     }
 
     setCount(num: number) {

@@ -15,7 +15,7 @@ export async function activate(context: vscode.ExtensionContext) {
   // extension is activated
   console.log("Zettnote is now active");
   let noteTree = new ZTreeView('znotes', 'NOTES', lp.getLinksInWorkspace, sm.sortByDate);
-  let linkTree = new ZTreeView('zlinks', 'LINKS', lp.getCurrentLinks, sm.sortText);
+  let linkTree = new ZTreeView('zlinks', 'LINKS', lp.getCurrentLinks, sm.sortByName);
   let backlinkTree = new ZTreeView('zbacklinks', 'BACKLINKS', lp.getCurrentBacklinks, sm.sortByDate);
 
   const md = { scheme: "file", language: "markdown" };

@@ -11,7 +11,12 @@ const FILE_GLOB = "*.{md,markdown}";
  * @param u Uri for the file you want to get the name of
  */
 export function getName(u: vscode.Uri): string {
-    return basename(u.fsPath, "." + u.fsPath.split(".").pop());
+    const path = u.fsPath;
+    if (path) {
+        return basename(path, "." + path.split(".").pop());
+    } else {
+        return "undefined";
+    }
 }
 
 /**
@@ -23,6 +28,7 @@ export async function getFileFromLink(link: string): Promise<vscode.Uri> {
     const linkedFiles = Array.from(allFiles.filter((f) => {
         return getName(f) === link;
     }));
+
     // TODO: some error checking here
     return linkedFiles[0];
 }
@@ -96,7 +102,8 @@ async function pickNote() {
     const links = await getLinksInWorkspace(sm.sortByDate);
     const disposables: vscode.Disposable[] = [];
     if (links) {
-        const items = links.map(i => new LinkItem(i));
+        const names = links.map(i => getName(i));
+        const items = names.map(i => new LinkItem(i));
         try {
             return await new Promise<string | undefined>((resolve, reject) => {
                 const input = vscode.window.createQuickPick<LinkItem>();
