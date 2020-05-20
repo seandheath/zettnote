@@ -4,7 +4,7 @@ import * as vscode from 'vscode';
 
 const open = require('open');
 
-const MD_LINK_REGEX = /(\[[^\]]*\]\(\s*?)(\S+?)(\s+[^\)]*)?\)/g;
+const MD_LINK_REGEX = /\[[^\]]*\]\(([^\)]*)?\)/g;
 
 export async function openAttachment() {
     const editor = vscode.window.activeTextEditor;
@@ -14,11 +14,16 @@ export async function openAttachment() {
             const line = editor.document.lineAt(range.start.line);
             const fullLink = line.text.slice(range.start.character, range.end.character);
             const match = MD_LINK_REGEX.exec(fullLink);
-            if (match && match[2]) {
-                const fileName = path.basename(match[2]);
+            if (match && match[1]) {
+                const fileName = path.basename(match[1]);
                 const filePath = getAttachmentFolder();
                 const fullPath = path.join(filePath, fileName);
-                const proc = await open(fullPath);
+                try {
+                    fs.accessSync(fullPath, fs.constants.R_OK);
+                    open(fullPath);
+                } catch (err) {
+                    vscode.window.showErrorMessage("Failed to open attachment, ensure the link you are trying to open is a file in your attachments folder - " + err);
+                }
             }
         }
     }
@@ -116,7 +121,7 @@ export async function attachFile() {
             insertFileLinks(files, destination);
         }
     } catch (err) {
-        vscode.window.showErrorMessage("Failed to attach files, error: " + err);
+        vscode.window.showErrorMessage("Failed to attach files - " + err);
     }
 
     return;
