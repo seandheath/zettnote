@@ -44,36 +44,6 @@
         "command": "zettnote.createNote",
         "title": "Create a Note",
         "icon": "$(add)"
-      },
-      {
-        "command": "zettnote.noteSortType",
-        "title": "Switch Note Sort Type",
-        "icon": "$(clock)"
-      },
-      {
-        "command": "zettnote.noteSortOrder",
-        "title": "Switch Note Sort Order",
-        "icon": "$(chevron-down)"
-      },
-      {
-        "command": "zettnote.linkSortOrder",
-        "title": "Switch Link Sort Order",
-        "icon": "$(chevron-down)"
-      },
-      {
-        "command": "zettnote.linkSortType",
-        "title": "Switch Link Sort Type",
-        "icon": "$(clock)"
-      },
-      {
-        "command": "zettnote.backlinkSortOrder",
-        "title": "Switch Backlink Sort Order",
-        "icon": "$(chevron-down)"
-      },
-      {
-        "command": "zettnote.backlinkSortType",
-        "title": "Switch Backlink Sort Type",
-        "icon": "$(clock)"
       }
     ],
     "menus": {
@@ -81,36 +51,6 @@
         {
           "command": "zettnote.createNote",
           "when": "view == znotes",
-          "group": "navigation"
-        },
-        {
-          "command": "zettnote.noteSortType",
-          "when": "view == znotes",
-          "group": "navigation"
-        },
-        {
-          "command": "zettnote.noteSortOrder",
-          "when": "view == zlinks",
-          "group": "navigation"
-        },
-        {
-          "command": "zettnote.linkSortType",
-          "when": "view == zbacklinks",
-          "group": "navigation"
-        },
-        {
-          "command": "zettnote.linkSortOrder",
-          "when": "view == znotes",
-          "group": "navigation"
-        },
-        {
-          "command": "zettnote.backlinkSortType",
-          "when": "view == zlinks",
-          "group": "navigation"
-        },
-        {
-          "command": "zettnote.backlinkSortOrder",
-          "when": "view == zbacklinks",
           "group": "navigation"
         }
       ]
@@ -120,6 +60,13 @@
         "command": "zettnote.createNote",
         "key": "ctrl+alt+n",
         "mac": "alt+cmd+n"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "zettnote",
+        "scopeName": "source.zettnote",
+        "path": "./syntaxes/zettnote.tmLanguage.json"
       }
     ]
   },

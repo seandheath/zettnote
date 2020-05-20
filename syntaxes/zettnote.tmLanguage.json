@@ -1,0 +1,13 @@
+{
+  "scopeName": "source.zettnote",
+  "patterns": [{ "include": "#expression" }],
+  "repository": {
+    "expression": {
+      "patterns": [{ "include": "#link" }]
+    },
+    "link": {
+      "match": "(\\[\\[[\\w\\-. ]+\\]\\])",
+      "name": "link"
+    }
+  }
+}
