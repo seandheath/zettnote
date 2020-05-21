@@ -77,8 +77,12 @@
     "commands": [
       {
         "command": "zettnote.createNote",
-        "title": "Create a Note",
+        "title": "ZettNote: Create a Note",
         "icon": "$(add)"
+      },
+      {
+        "command": "zettnote.refreshLinks",
+        "title": "ZettNote: Refresh Links"
       }
     ],
     "menus": {
