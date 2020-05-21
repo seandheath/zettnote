@@ -16,18 +16,13 @@ Zettnote supports the following features:
 
 - View all backlinks from other notes to this note
 
-## Requirements
-
-TODO validate requirements
-
 ## Extension Settings
 
 This extension contributes the following settings:
 
 - `zettnote.createNote`: defaults to `[Ctrl/Cmd]+Alt+n` to create or open a note.
-- TODO: `zettnote.attachFile`: moves file to attachment folder and creates a hyperlink to it.
+- `zettnote.attachFile`: moves file to attachment folder and creates a link to it.
 - TODO: `zettnote.showGraph`: generates dot graph of notes.
-- TODO: `zettnote.exportNote`: export note, stripping wikilinks or converting them to normal text.
 
 ## Known Issues
 
