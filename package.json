@@ -3,14 +3,18 @@
   "displayName": "zettnote",
   "description": "Extension to support Zettelkasten markdown notes",
   "version": "0.0.1",
+  "publisher": "sean-heath",
   "engines": {
-    "vscode": "^1.45.0"
+    "vscode": "^1.45.1"
   },
   "categories": [
     "Other"
   ],
   "activationEvents": [
-    "onLanguage:markdown"
+    "onLanguage:markdown",
+    "onCommand:zettnote.createNote",
+    "onCommand:zettnote.attachFile",
+    "oncommand:zettnote.openAttachment"
   ],
   "main": "./out/extension.js",
   "contributes": {
